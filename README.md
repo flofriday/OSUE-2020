@@ -13,3 +13,7 @@ Thank you, you are awsome 😊🎉
 
 **Note:** Replace your name and Matrikelnumber in all source files if you 
 want to contribute anonymously.
+
+## Contribtute your solution (Discord)
+In the case you don't have a GitHub account you can send me your solution
+on Discord TU Wien Informatik Server were I am the only `flofriday`.
