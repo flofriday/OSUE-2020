@@ -1,0 +1,7 @@
+*.o
+supervisor
+generator
+*.tgz
+.vscode
+.nfs*
+note.txt
