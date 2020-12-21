@@ -11,6 +11,7 @@ class HttpTest:
         if cp.returncode is not code:
             self.tests_failed += 1
             print(f'"{command}" returned with {cp.returncode} instead of {code}')
+        return cp.returncode is code
         
     def print_result(self):
         if self.tests_failed == 0:
