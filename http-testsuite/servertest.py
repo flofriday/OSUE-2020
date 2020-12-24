@@ -1,5 +1,6 @@
 from httptest import HttpTest
 
+
 def main():
     h = HttpTest()
 
@@ -8,5 +9,6 @@ def main():
     h.is_returncode("./server -p 12 323", 1)
     h.is_returncode("./server -m 1", 1)
     h.print_result()
+
 
 main()
