@@ -4,7 +4,9 @@ An attempt to write an integration testsuite for the third exercise.
 ## ️Disclaimer ⚠️
 First, there is no gurantee that passing these test will gurantee that you will
 be positive. These tests are created by your fellow students and by our
-interpretation of the exercise (which may be wrong).
+interpretation of the exercise (which may be wrong). Also these test do not
+check if your code has memmory leaks, and there are no plans at the moment 
+to do this.
 
 Having said that, there are quite a lot of test for the server and the client.
 
