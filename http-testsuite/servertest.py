@@ -2,7 +2,8 @@ from httptest import HttpTest
 import os
 import urllib.request
 import subprocess
-from datetime import datetime
+import time
+import http.client
 
 
 def main():
@@ -12,6 +13,7 @@ def main():
     # Test the server with invalid arguments
     h.is_returncode("./server", 1)
     h.is_returncode("./server -p __docroot/", 1)
+    h.is_returncode("./server -p 1331 -p 1332 __docroot/", 1)
     h.is_returncode("./server -p 12 __docroot/index.html", 1)
 
     # Test the server with valid arguments
@@ -21,35 +23,54 @@ def main():
     # Start a server in the background and test a couple of requests
     p = start_server("./server -p 1337 __docroot")
     try:
-        h.response_header_contains(
-            "http://localhost:1337/", "Connection", "close"
-        )
+
+        # Check response headers upon success
+        h.in_response_header("http://localhost:1337/", "Connection", "close")
 
         index_size = os.path.getsize("__docroot/index.html")
-        h.response_header_contains(
+        h.in_response_header(
             "http://localhost:1337/", "Content-Length", str(index_size)
         )
 
-        date_text = datetime.now().strftime("%a, %d %b %y %H:%M:%S CET")
-        h.response_header_contains("http://localhost:1337/", "Date", date_text)
+        date_text = time.strftime("%a, %d %b %y %T %Z", time.gmtime())
+        h.in_response_header("http://localhost:1337/", "Date", date_text)
 
-        if not h.response_header_contains(
+        if not h.in_response_header(
             "http://localhost:1337/", "Content-Type", "text/html"
         ):
             print("NOTE: This is a bonus task.")
 
-        if not h.response_header_contains(
+        if not h.in_response_header(
             "http://localhost:1337/countdown.js",
             "Content-Type",
             "application/javascript",
         ):
             print("NOTE: This is a bonus task.")
 
-        if not h.response_header_contains(
+        if not h.in_response_header(
             "http://localhost:1337/solarized.css", "Content-Type", "text/css"
         ):
             print("NOTE: This is a bonus task.")
 
+        # If the client doesn't tell the server that it understands gzip the
+        # server cannot answer with gzip
+        if not h.notin_response_header(
+            "http://localhost:1337/", "Content-Encoding", "gzip"
+        ):
+            print(
+                "NOTE: The server cannot send the client gzip data if the"
+                + "client didn't tell the server that it understands gzip"
+            )
+
+        # Check headers of failing requests
+        h.in_response_header(
+            "http://localhost:1337/doesnotexist", "Connection", "close"
+        )
+        h.in_response_header(
+            "http://localhost:1337/", "Connection", "close", method="POST"
+        )
+
+        # Check if response is the same as the file
         h.compare_response_body(
             "http://localhost:1337/", "__docroot/index.html"
         )
@@ -66,13 +87,15 @@ def main():
             "http://localhost:1337/solarized.css", "__docroot/solarized.css"
         )
 
+        # Check Status codes upon success
         h.is_statuscode("http://localhost:1337/", 200)
         h.is_statuscode("http://localhost:1337/index.html", 200)
         h.is_statuscode("http://localhost:1337/countdown.js", 200)
         h.is_statuscode("http://localhost:1337/cat.png", 200)
         h.is_statuscode("http://localhost:1337/solarized.css", 200)
-        h.is_statuscode("http://localhost:1337/doesnotexist", 404)
 
+        # Check status codes of failed requests
+        h.is_statuscode("http://localhost:1337/doesnotexist", 404)
         h.is_statuscode("http://localhost:1337/index.html", 501, method="HEAD")
         h.is_statuscode("http://localhost:1337/index.html", 501, method="POST")
         h.is_statuscode("http://localhost:1337/index.html", 501, method="PUT")
@@ -92,12 +115,55 @@ def main():
             "http://localhost:1337/index.html", 501, method="PATCH"
         )
 
+        # Now lets simulate a client so bad we have to write it ourself.
+        # Oh boy/girl this will be fun 😈
+        first = "GET / HTTP/1.0"
+        res = send_bad_request("localhost:1337", first)
+        if res.status == 400:
+            h.test_passed()
+        else:
+            h.test_failed()
+            print(
+                f'A request with "{first}" responded with status {res.status} instead of 400'
+            )
+
+        first = "GET / HTTP/1.3"
+        res = send_bad_request("localhost:1337", first)
+        if res.status == 400:
+            h.test_passed()
+        else:
+            h.test_failed()
+            print(
+                f'A request with "{first}" responded with status {res.status} instead of 400'
+            )
+
+        first = "GET HTTP/1.1"
+        res = send_bad_request("localhost:1337", first)
+        if res.status == 400:
+            h.test_passed()
+        else:
+            h.test_failed()
+            print(
+                f'A request with "{first}" responded with status {res.status} instead of 400'
+            )
+
+        first = "GET / HTTP/1.1 supersecrethiddenfieldthatshouldnotbeaccepted"
+        res = send_bad_request("localhost:1337", first)
+        if res.status == 400:
+            h.test_passed()
+        else:
+            h.test_failed()
+            print(
+                f'A request with "{first}" responded with status {res.status} instead of 400'
+            )
+
     except Exception as e:
         stop_server(p)
         raise e
 
     stop_server(p)
 
+    # Print the statistics and results
     h.print_result()
 
 
@@ -113,6 +179,22 @@ def start_server(command: str) -> subprocess.Popen:
 def stop_server(process: subprocess.Popen):
     process.terminate()
     process.wait(timeout=0.5)
+
+
+def send_bad_request(host: str, first_line: str) -> http.client.HTTPResponse:
+    h1 = http.client.HTTPConnection(host)
+    d = first_line.encode("ascii")
+    h1.connect()
+
+    # Ok here we are messing with the internal state of an object in a way
+    # that we shouldn't but it is so much easier than writing this by our
+    # self.
+    h1._HTTPConnection__state = "Request-started"
+    h1._method = "GET"
+    h1._output(h1._encode_request(first_line))
+
+    h1.endheaders()
+    return h1.getresponse()
 
 
 # Create folder with files for the server to serve in the tests

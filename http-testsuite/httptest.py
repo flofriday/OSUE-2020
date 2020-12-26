@@ -9,7 +9,7 @@ class HttpTest:
         self._tests = 0
         self._tests_failed = 0
         self._create_dir()
-        print("OSUE Exercise 3 Testsuite")
+        print("OSUE Exercise 3 Testsuite (WS 2020/2021)")
         print(
             "GitHub: https://github.com/flofriday/OSUE-2020/tree/main/http-testsuite\n"
         )
@@ -17,14 +17,14 @@ class HttpTest:
     # Increase the internal testcounter and print a simple message to stdout
     def test_passed(self):
         self._tests += 1
-        print(f"✅ Test {self._tests} Passed")
+        print(f"✅ Test {self._tests:02d} Passed")
 
     # Increate the interal testscounter and failed tests counter and print a
     # simple message to stdout
     def test_failed(self):
         self._tests += 1
         self._tests_failed += 1
-        print(f"🚨 Test {self._tests} Failed")
+        print(f"🚨 Test {self._tests:02d} Failed")
 
     # Create a directory called __tmp to be used save output files the client
     # creates.
@@ -164,17 +164,46 @@ class HttpTest:
     # This test creates a request to url. Then it will look if there is a
     # filed in the response headers with the name and value provided to this
     # test.
-    def response_header_contains(
-        self, url: str, name: str, value: str
+    def in_response_header(
+        self, url: str, name: str, value: str, method: str = "GET"
     ) -> bool:
-        headers = urllib.request.urlopen(url).headers
-        if name not in headers or value not in headers[name]:
+        req = urllib.request.Request(url, method=method)
+        try:
+            headers = urllib.request.urlopen(req).headers
+        except urllib.error.URLError as e:
+            headers = e.headers
+
+        if name not in headers or value != headers[name]:
             self.test_failed()
             print(
                 f'Response to "{url}" did not contain "{name}: {value}" in the headers.'
             )
+            if method != "GET":
+                print(f"The request was made with HTTP-Method {method}.")
             if name in headers:
                 print(f'Closest Header was: "{name}: {headers[name]}"')
+            return False
+
+        self.test_passed()
+        return True
+
+    # Equal to in_response_header but fails if the field is in the response
+    def notin_response_header(
+        self, url: str, name: str, value: str, method: str = "GET"
+    ) -> bool:
+        req = urllib.request.Request(url, method=method)
+        try:
+            headers = urllib.request.urlopen(req).headers
+        except urllib.error.URLError as e:
+            headers = e.headers
+
+        if name in headers and value == headers[name]:
+            self.test_failed()
+            print(
+                f'Response to "{url}" did contain "{name}: {value}" in the headers.'
+            )
+            if method != "GET":
+                print(f"The request was made with HTTP-Method {method}.")
             return False
 
         self.test_passed()
@@ -214,6 +243,8 @@ class HttpTest:
             print(
                 f'"Response to {url}" returned with status {code} instead of {status}'
             )
+            if method != "GET":
+                print(f"The request was made with HTTP-Method {method}.")
             return False
 
         self.test_passed()

@@ -37,7 +37,9 @@ python3 servertest.py
 - [x] **Server** sends correct status code upon success
 - [x] **Server** sends correct status code if file is missing 
 - [x] **Server** sends correct status code if method not supported
-- [ ] **Server** sends correct status code if HTTP version is not supported
-- [ ] **Server** sends correct status code if client violates HTTP protocoll
-- [ ] **Server** Only sends compressed content if client can accept it
+- [x] **Server** sends correct status code if HTTP version is not supported
+- [x] **Server** sends correct status code if client violates HTTP protocoll
+- [x] **Server** Only sends compressed content if client can accept it
+- [ ] **Server** Sends compressed content
+- [ ] **Server** The content-length is also the amount the server sent
 

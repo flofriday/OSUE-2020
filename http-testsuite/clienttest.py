@@ -3,6 +3,8 @@ from httptest import HttpTest
 
 def main():
     h = HttpTest()
+
+    # Working examples
     h.is_returncode("./client http://pan.vmars.tuwien.ac.at/osue/", 0)
     h.is_returncode(
         "./client http://pan.vmars.tuwien.ac.at/osue/countdown.js", 0
@@ -29,12 +31,19 @@ def main():
         "404 Not Found",
     )
 
-    # Too many arguments
-    if not h.is_returncode(
+    # Conflicting arguments
+    h.is_returncode(
         "./client -d __tmp -o __tmp/index.html http://pan.vmars.tuwien.ac.at/osue/",
         1,
-    ):
-        print("NOTE: A file may have been written, probably __tmp/index.html")
+    )
+    h.is_returncode(
+        "./client -d __tmp -d __tmp/ http://pan.vmars.tuwien.ac.at/osue/",
+        1,
+    )
+    h.is_returncode(
+        "./client -o __tmp/index.html -o __tmp/index.html http://pan.vmars.tuwien.ac.at/osue/",
+        1,
+    )
 
     # Check if the client creates the right filenames
     h.creates_file(
