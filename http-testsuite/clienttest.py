@@ -4,7 +4,9 @@ from httptest import HttpTest
 def main():
     h = HttpTest()
     h.is_returncode("./client http://pan.vmars.tuwien.ac.at/osue/", 0)
-    h.is_returncode("./client http://pan.vmars.tuwien.ac.at/osue/countdown.js", 0)
+    h.is_returncode(
+        "./client http://pan.vmars.tuwien.ac.at/osue/countdown.js", 0
+    )
     h.is_returncode("./client http://pan.vmars.tuwien.ac.at/osue/cat.png", 0)
     h.is_returncode("./client http://neverssl.com", 0)
     h.is_returncode("./client http://www.nonhttps.com/", 0)
@@ -19,7 +21,9 @@ def main():
     h.is_returncode("./client -d http://pan.vmars.tuwien.ac.at/osue/", 1)
 
     # Statuscodes that are not 200 OK
-    h.is_returncode("./client http://pan.vmars.tuwien.ac.at/osue/does-not-exist", 3)
+    h.is_returncode(
+        "./client http://pan.vmars.tuwien.ac.at/osue/does-not-exist", 3
+    )
     h.does_print(
         "./client http://pan.vmars.tuwien.ac.at/osue/does-not-exist",
         "404 Not Found",
