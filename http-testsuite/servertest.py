@@ -7,7 +7,11 @@ import http.client
 
 
 def main():
+    # Create a test opbject
     h = HttpTest()
+
+    # Download some files from https://pan.vmars.tuwien.ac.at/osue/ to use in
+    # the tests.
     create_docroot()
 
     # Test the server with invalid arguments
@@ -23,6 +27,8 @@ def main():
     # Start a server in the background and test a couple of requests
     p = start_server("./server -p 1337 __docroot")
     try:
+
+        gzip_header = {"Accept-Encoding": "gzip"}
 
         # Check response headers upon success
         h.in_response_header("http://localhost:1337/", "Connection", "close")
@@ -49,6 +55,15 @@ def main():
 
         if not h.in_response_header(
             "http://localhost:1337/solarized.css", "Content-Type", "text/css"
+        ):
+            print("NOTE: This is a bonus task.")
+
+        # Check if the response header contains the gzip if we request gzip
+        if not h.in_response_header(
+            "http://localhost:1337/",
+            "Content-Encoding",
+            "gzip",
+            headers=gzip_header,
         ):
             print("NOTE: This is a bonus task.")
 
@@ -87,16 +102,85 @@ def main():
             "http://localhost:1337/solarized.css", "__docroot/solarized.css"
         )
 
+        h.compare_response_body(
+            "http://localhost:1337/",
+            "__docroot/index.html",
+            headers=gzip_header,
+        )
+        h.compare_response_body(
+            "http://localhost:1337/index.html",
+            "__docroot/index.html",
+            headers=gzip_header,
+        )
+        h.compare_response_body(
+            "http://localhost:1337/countdown.js",
+            "__docroot/countdown.js",
+            headers=gzip_header,
+        )
+        h.compare_response_body(
+            "http://localhost:1337/cat.png",
+            "__docroot/cat.png",
+            headers=gzip_header,
+        )
+        h.compare_response_body(
+            "http://localhost:1337/solarized.css",
+            "__docroot/solarized.css",
+            headers=gzip_header,
+        )
+
+        # Check the content-lenght
+        h.verify_content_length("http://localhost:1337/")
+        h.verify_content_length("http://localhost:1337/countdown.js")
+        h.verify_content_length("http://localhost:1337/cat.png")
+        h.verify_content_length("http://localhost:1337/solarized.css")
+        h.verify_content_length("http://localhost:1337/", headers=gzip_header)
+        h.verify_content_length(
+            "http://localhost:1337/countdown.js", headers=gzip_header
+        )
+        h.verify_content_length(
+            "http://localhost:1337/cat.png", headers=gzip_header
+        )
+        h.verify_content_length(
+            "http://localhost:1337/solarized.css", headers=gzip_header
+        )
+
         # Check Status codes upon success
         h.is_statuscode("http://localhost:1337/", 200)
         h.is_statuscode("http://localhost:1337/index.html", 200)
         h.is_statuscode("http://localhost:1337/countdown.js", 200)
         h.is_statuscode("http://localhost:1337/cat.png", 200)
         h.is_statuscode("http://localhost:1337/solarized.css", 200)
+        h.is_statuscode("http://localhost:1337/", 200, headers=gzip_header)
+        h.is_statuscode(
+            "http://localhost:1337/index.html", 200, headers=gzip_header
+        )
+        h.is_statuscode(
+            "http://localhost:1337/countdown.js", 200, headers=gzip_header
+        )
+        h.is_statuscode(
+            "http://localhost:1337/cat.png", 200, headers=gzip_header
+        )
+        h.is_statuscode(
+            "http://localhost:1337/solarized.css", 200, headers=gzip_header
+        )
 
         # Check status codes of failed requests
-        h.is_statuscode("http://localhost:1337/doesnotexist", 404)
+        h.is_statuscode(
+            "http://localhost:1337/doesnotexist", 404, method="GET"
+        )
+        h.is_statuscode(
+            "http://localhost:1337/doesnotexist",
+            404,
+            method="GET",
+            headers=gzip_header,
+        )
         h.is_statuscode("http://localhost:1337/index.html", 501, method="HEAD")
+        h.is_statuscode(
+            "http://localhost:1337/index.html",
+            501,
+            method="HEAD",
+            headers=gzip_header,
+        )
         h.is_statuscode("http://localhost:1337/index.html", 501, method="POST")
         h.is_statuscode("http://localhost:1337/index.html", 501, method="PUT")
         h.is_statuscode(

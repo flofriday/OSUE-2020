@@ -18,6 +18,9 @@ python3 clienttest.py
 python3 servertest.py
 ```
 
+**Note:** Please feel free to create an issue if you have more tests, ideas for 
+more tests or notes on how to make the error messages more clear.
+
 ## What is tested
 (Empty boxes are for tests that we want to implement)
 
@@ -28,7 +31,7 @@ python3 servertest.py
 - [x] **Client** can download files and the content is correct (only binary download can be tested)
 - [ ] **Client** sends the correct/required headers
 - [ ] **Client** prints the correct error messages if the server violates the HTTP protocoll
-- [ ] **Client** prints the correct error messages if the server answers witht the wrong HTTP version
+- [ ] **Client** prints the correct error messages if the server answers with the wrong HTTP version
 
 
 - [x] **Server** has correct arguments parsing.
@@ -40,6 +43,5 @@ python3 servertest.py
 - [x] **Server** sends correct status code if HTTP version is not supported
 - [x] **Server** sends correct status code if client violates HTTP protocoll
 - [x] **Server** Only sends compressed content if client can accept it
-- [ ] **Server** Sends compressed content
-- [ ] **Server** The content-length is also the amount the server sent
-
+- [x] **Server** Sends compressed content
+- [x] **Server** The content-length is also the amount the server sent

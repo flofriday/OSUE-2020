@@ -2,6 +2,8 @@ import subprocess
 import os
 import shutil
 import urllib.request
+from typing import Dict
+import zlib
 
 
 class HttpTest:
@@ -165,23 +167,32 @@ class HttpTest:
     # filed in the response headers with the name and value provided to this
     # test.
     def in_response_header(
-        self, url: str, name: str, value: str, method: str = "GET"
+        self,
+        url: str,
+        name: str,
+        value: str,
+        method: str = "GET",
+        headers: Dict[str, str] = {},
     ) -> bool:
-        req = urllib.request.Request(url, method=method)
+        req = urllib.request.Request(url, method=method, headers=headers)
         try:
-            headers = urllib.request.urlopen(req).headers
+            res_headers = urllib.request.urlopen(req).headers
         except urllib.error.URLError as e:
-            headers = e.headers
+            res_headers = e.headers
 
-        if name not in headers or value != headers[name]:
+        if name not in res_headers or value != res_headers[name]:
             self.test_failed()
             print(
                 f'Response to "{url}" did not contain "{name}: {value}" in the headers.'
             )
             if method != "GET":
                 print(f"The request was made with HTTP-Method {method}.")
-            if name in headers:
-                print(f'Closest Header was: "{name}: {headers[name]}"')
+            if headers != {}:
+                print(
+                    f'The request was send with the additional header "{headers}"'
+                )
+            if name in res_headers:
+                print(f'Closest Header was: "{name}: {res_headers[name]}"')
             return False
 
         self.test_passed()
@@ -209,16 +220,72 @@ class HttpTest:
         self.test_passed()
         return True
 
+    # Check if the Content-Length is equal to the number of bytes in the
+    # response body
+    def verify_content_length(self, url: str, headers: Dict[str, str] = {}):
+        req = urllib.request.Request(url, headers=headers)
+        try:
+            res = urllib.request.urlopen(req)
+        except urllib.error.URLError as e:
+            self.test_failed()
+            print(f"The request returned with status {e.code} instead of 200")
+            return False
+
+        if "Content-Length" not in res.headers:
+            self.test_failed()
+            print(
+                f'Response to {url} did not contain the header "Content-Length"'
+            )
+            return False
+
+        size = int(res.headers["Content-Length"])
+        content_size = len(res.read())
+        if size != content_size:
+            self.test_failed()
+            print(
+                f'The response to "{url}" had the header "Content-Length: {content_size}" however the body sent was {size} bytes long.'
+            )
+            return False
+
+        self.test_passed()
+        return True
+
     # This test creates a request to url and then compares the response body to
     # the content of the file pointed to by path.
-    def compare_response_body(self, url: str, path: str) -> bool:
-        body = urllib.request.urlopen(url).read()
+    def compare_response_body(
+        self, url: str, path: str, headers: Dict[str, str] = {}
+    ) -> bool:
+        req = urllib.request.Request(url, headers=headers)
+        try:
+            res = urllib.request.urlopen(req)
+            # body = res.read()
+        except urllib.error.URLError as e:
+            self.test_failed()
+            print(f"The request returned with status {e.code} instead of 200")
+            return False
+
+        if (
+            "Content-Encoding" in res.headers
+            and "gzip" in res.headers["Content-Encoding"]
+        ):
+            zobj = zlib.decompressobj(zlib.MAX_WBITS | 32)
+            body = zobj.decompress(res.read())
+        else:
+            body = res.read()
+
         content = open(path, "rb").read()
-        if not body == content:
+        if body != content:
             self.test_failed()
             print(
                 f'"Response to {url}" was not the same content as in "{path}"'
             )
+            print(
+                f"Response was {len(body)} bytes while original was {len(content)}"
+            )
+            if headers != {}:
+                print(
+                    f'The request was send with the additional header "{headers}"'
+                )
             print(
                 "NOTE: This might be because you haven't yet implemented the bonus task, binary files."
             )
@@ -231,9 +298,13 @@ class HttpTest:
     # checks if the statuscode provided is equal to the status code of the
     # response. This test will fail if they are not equal.
     def is_statuscode(
-        self, url: str, status: int, method: str = "GET"
+        self,
+        url: str,
+        status: int,
+        method: str = "GET",
+        headers: Dict[str, str] = {},
     ) -> bool:
-        req = urllib.request.Request(url, method=method)
+        req = urllib.request.Request(url, method=method, headers=headers)
         try:
             code = urllib.request.urlopen(req).status
         except urllib.error.URLError as e:
@@ -243,6 +314,10 @@ class HttpTest:
             print(
                 f'"Response to {url}" returned with status {code} instead of {status}'
             )
+            if headers != {}:
+                print(
+                    f'The request was send with the additional header "{headers}"'
+                )
             if method != "GET":
                 print(f"The request was made with HTTP-Method {method}.")
             return False
