@@ -242,10 +242,10 @@ def main():
             )
 
     except Exception as e:
-        stop_server(p)
+        stop_server(h, p)
         raise e
 
-    stop_server(p)
+    stop_server(h, p)
 
     # Print the statistics and results
     h.print_result()
@@ -255,14 +255,25 @@ def start_server(command: str) -> subprocess.Popen:
     return subprocess.Popen(
         command,
         shell=True,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
     )
 
 
-def stop_server(process: subprocess.Popen):
-    process.terminate()
-    process.wait(timeout=0.5)
+def stop_server(h: HttpTest, process: subprocess.Popen):
+    try:
+        process.terminate()
+        process.wait(timeout=0.5)
+        h.test_passed()
+    except subprocess.TimeoutExpired as e:
+        h.test_failed()
+        print(
+            "The server didn't terminate in the 0.5sec after SIGTERM was sent"
+        )
+
+    print("\n--- Server Output Start---")
+    print(process.stdout.read().decode().strip())
+    print("--- Server Output End ---")
 
 
 def send_bad_request(host: str, first_line: str) -> http.client.HTTPResponse:
@@ -315,4 +326,27 @@ def download_file(url: str, path: str):
     file.write(body)
 
 
-main()
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as e:
+        print(
+            """
+                      ___  _   _   ___  _  __
+                     | __|| | | | / __|| |/ /
+                     | _| | |_| || (__ |   < 
+                     |_|   \___/  \___||_|\_\\
+
+                    💥 The Testsuite crashed! 💥                            
+
+Okay, this shouldn't have happend and is the fault of tests developer.
+However, there might be some error in your code that triggered the crash.
+
+Here is what you do:
+1) Read the Python Traceback below and double check your code for bugs
+2) Write a Issue on GitHub (include the Traceback)
+
+--- TRACEBACK BELOW ---
+        """
+        )
+        raise e

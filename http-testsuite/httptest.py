@@ -7,9 +7,13 @@ import zlib
 
 
 class HttpTest:
+
+    # The constuctor prints a simple message about this testsuite and
+    # initialises all testcounters and a temporary folder
     def __init__(self):
         self._tests = 0
         self._tests_failed = 0
+        self._timeout = 1
         self._create_dir()
         print("OSUE Exercise 3 Testsuite (WS 2020/2021)")
         print(
@@ -43,15 +47,15 @@ class HttpTest:
         try:
             cp = subprocess.run(
                 command,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                timeout=0.5,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                timeout=self._timeout,
                 shell=True,
             )
         except subprocess.TimeoutExpired as e:
             self.test_failed()
             print(
-                f'"{command}" ran for more than 0.5s, but was expected to return {code}'
+                f'"{command}" ran for more than {self._timeout}s, but was expected to return {code}'
             )
             return False
 
@@ -71,9 +75,9 @@ class HttpTest:
         try:
             cp = subprocess.run(
                 command,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                timeout=0.5,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                timeout=self._timeout,
                 shell=True,
             )
         except subprocess.TimeoutExpired as e:
@@ -95,15 +99,15 @@ class HttpTest:
         try:
             cp = subprocess.run(
                 command,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                timeout=0.5,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                timeout=self._timeout,
                 shell=True,
             )
         except subprocess.TimeoutExpired as e:
             self.test_failed()
             print(
-                f'"{command}" ran for more than 0.5s, but was expected to execute faster.'
+                f'"{command}" ran for more than {self._timeout}s, but was expected to execute faster.'
             )
             return False
 
@@ -117,7 +121,7 @@ class HttpTest:
             print(f'"{command}" did not create file "{path}"')
             return False
 
-        print(f"✅ Test {self.tests} Passed")
+        self.test_passed()
         return True
 
     # Run the command and afterwards compare the file saved in path with what
@@ -130,15 +134,15 @@ class HttpTest:
         try:
             cp = subprocess.run(
                 command,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                timeout=0.5,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                timeout=self._timeout,
                 shell=True,
             )
         except subprocess.TimeoutExpired as e:
             self.test_failed()
             print(
-                f'"{command}" ran for more than 0.5s, but was expected to execute faster.'
+                f'"{command}" ran for more than {self._timeout}s, but was expected to execute faster.'
             )
             return False
 
@@ -152,12 +156,16 @@ class HttpTest:
             print(f'"{command}" did not create file "{path}"')
             return False
 
-        body = urllib.request.urlopen(url).read()
+        res = urllib.request.urlopen(url)
+
+        body = res.read()
         file = open(path, "rb")
         output = file.read()
         if body != output:
             self.test_failed()
-            print(f'"{command}" did not create the same output as python.')
+            print(
+                f'"{command}" did not create the same output as Python 3 (with urllib).'
+            )
             return False
 
         self.test_passed()
@@ -176,9 +184,21 @@ class HttpTest:
     ) -> bool:
         req = urllib.request.Request(url, method=method, headers=headers)
         try:
-            res_headers = urllib.request.urlopen(req).headers
-        except urllib.error.URLError as e:
+            res = urllib.request.urlopen(req)
+            res_headers = res.headers
+            res.read()
+        except urllib.error.HTTPError as e:
             res_headers = e.headers
+        except urllib.error.URLError as e:
+            self.test_failed()
+            print(f"Request to {url} failed horribly. Reason: {e.reason}")
+            if method != "GET":
+                print(f"The request was made with HTTP-Method {method}.")
+            if headers != {}:
+                print(
+                    f'The request was send with the additional header "{headers}"'
+                )
+            return False
 
         if name not in res_headers or value != res_headers[name]:
             self.test_failed()
@@ -204,9 +224,17 @@ class HttpTest:
     ) -> bool:
         req = urllib.request.Request(url, method=method)
         try:
-            headers = urllib.request.urlopen(req).headers
-        except urllib.error.URLError as e:
+            res = urllib.request.urlopen(req)
+            headers = res.headers
+            res.read()
+        except urllib.error.HTTPError as e:
             headers = e.headers
+        except urllib.error.URLError as e:
+            self.test_failed()
+            print(f"Request to {url} failed horribly. Reason: {e.reason}")
+            if method != "GET":
+                print(f"The request was made with HTTP-Method {method}.")
+            return False
 
         if name in headers and value == headers[name]:
             self.test_failed()
@@ -258,7 +286,6 @@ class HttpTest:
         req = urllib.request.Request(url, headers=headers)
         try:
             res = urllib.request.urlopen(req)
-            # body = res.read()
         except urllib.error.URLError as e:
             self.test_failed()
             print(f"The request returned with status {e.code} instead of 200")
@@ -306,9 +333,22 @@ class HttpTest:
     ) -> bool:
         req = urllib.request.Request(url, method=method, headers=headers)
         try:
-            code = urllib.request.urlopen(req).status
-        except urllib.error.URLError as e:
+            res = urllib.request.urlopen(req)
+            code = res.status
+            res.read()
+        except urllib.error.HTTPError as e:
             code = e.code
+        except urllib.error.URLError as e:
+            self.test_failed()
+            print(f"Request to {url} failed horribly. Reason: {e.reason}")
+            if headers != {}:
+                print(
+                    f'The request was send with the additional header "{headers}"'
+                )
+            if method != "GET":
+                print(f"The request was made with HTTP-Method {method}.")
+            return False
+
         if status != code:
             self.test_failed()
             print(
@@ -326,25 +366,27 @@ class HttpTest:
         return True
 
     # Check if the command prints a certain phrase to either stdout or stderr
-    def does_print(self, command: str, output: str) -> bool:
+    def does_print(self, command: str, expected_output: str) -> bool:
         try:
             cp = subprocess.run(
                 command,
                 shell=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
-                timeout=0.5,
+                timeout=self._timeout,
             )
         except subprocess.TimeoutExpired as e:
             self.test_failed()
             print(
-                f'"{command}" ran for more than 0.5s, but was expected to execute faster.'
+                f'"{command}" ran for more than {self._timeout}s, but was expected to execute faster.'
             )
             return False
 
-        if not output in cp.stdout.decode():
+        output = cp.stdout.decode()
+        if not expected_output in cp.stdout.decode():
             self.test_failed()
-            print(f'"{command}" did not print "{output}".')
+            print(f'"{command}" did not print "{expected_output}".')
+            print(f"---Program Output---\n{output}")
             return False
 
         self.test_passed()
@@ -353,7 +395,7 @@ class HttpTest:
     # Print a very simple statistics to stdout
     def print_result(self):
         self._create_dir()
-        print(f"{20*'-'} Statistics {20*'-'}")
+        print(f"\n{20*'-'} Statistics {20*'-'}")
         if self._tests_failed == 0:
             print(f"🎉 All {self._tests} tests passed 🎉")
         else:
