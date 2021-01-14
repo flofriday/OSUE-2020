@@ -134,14 +134,14 @@ if __name__ == "__main__":
                      | _| | |_| || (__ |   < 
                      |_|   \___/  \___||_|\_\\
 
-                    💥 The Testsuite crashed! 💥                            
+                    🔥 The Testsuite crashed! 🔥
 
-Okay, this shouldn't have happend and is the fault of tests developer.
-However, there might be some error in your code that triggered the crash.
+Okay, this shouldn't have happend and is my (the testsuite dev) fault.
+However, there is probably some error in your code that triggered the crash.
 
 Here is what you do:
-1) Read the Python Traceback below and double check your code for bugs
-2) Write a Issue on GitHub (include the Traceback)
+1) Read the Python Traceback below and double check your code for bugs.
+2) Write a Issue on GitHub (include the Traceback):
    https://github.com/flofriday/OSUE-2020/issues/new
 
 

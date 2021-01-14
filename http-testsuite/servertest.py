@@ -7,7 +7,7 @@ import http.client
 
 
 def main():
-    # Create a test opbject
+    # Create a test object
     h = HttpTest()
 
     # Download some files from https://pan.vmars.tuwien.ac.at/osue/ to use in
@@ -251,6 +251,8 @@ def main():
     h.print_result()
 
 
+# Start the server as a child process so that python can make request to it and
+# test it.
 def start_server(command: str) -> subprocess.Popen:
     return subprocess.Popen(
         command,
@@ -260,12 +262,15 @@ def start_server(command: str) -> subprocess.Popen:
     )
 
 
+# Stop the server by sending SIGTERM, and give the server 0.5 seconds to comply
+# with that signal, otherwise kill the process forcefully.
+# Also print the servers stdout, stderr to the terminal for debugging.
 def stop_server(h: HttpTest, process: subprocess.Popen):
     try:
         process.terminate()
         process.wait(timeout=0.5)
         h.test_passed()
-    except subprocess.TimeoutExpired as e:
+    except subprocess.TimeoutExpired:
         h.test_failed()
         print(
             "The server didn't terminate in the 0.5sec after SIGTERM was sent"
@@ -276,14 +281,20 @@ def stop_server(h: HttpTest, process: subprocess.Popen):
     print("--- Server Output End ---")
 
 
+# Send a really bad request to the server.
+# The caller can specify what the first file of the request is and so we can
+# test how the server reacts to misbehaving clients.
 def send_bad_request(host: str, first_line: str) -> http.client.HTTPResponse:
     h1 = http.client.HTTPConnection(host)
-    d = first_line.encode("ascii")
     h1.connect()
 
+    # WARNING: THIS IS BAD CODE!
+    # I just do this because I know what Python version is running on the
+    # server and because I don't have enough time, but this should never be
+    # done in any production codebase.
     # Ok here we are messing with the internal state of an object in a way
-    # that we shouldn't but it is so much easier than writing this by our
-    # self.
+    # that we shouldn't but it is so much easier than writing response parsing
+    # own our own.
     h1._HTTPConnection__state = "Request-started"
     h1._method = "GET"
     h1._output(h1._encode_request(first_line))
@@ -320,6 +331,7 @@ def create_docroot():
         )
 
 
+# Just a simple helper to download a file and save it to a path.
 def download_file(url: str, path: str):
     body = urllib.request.urlopen(url).read()
     file = open(path, "wb")
@@ -337,14 +349,17 @@ if __name__ == "__main__":
                      | _| | |_| || (__ |   < 
                      |_|   \___/  \___||_|\_\\
 
-                    💥 The Testsuite crashed! 💥                            
+                    🔥 The Testsuite crashed! 🔥
 
-Okay, this shouldn't have happend and is the fault of tests developer.
-However, there might be some error in your code that triggered the crash.
+Okay, this shouldn't have happend and is my (the testsuite dev) fault.
+However, there is probably some error in your code that triggered the crash.
 
 Here is what you do:
-1) Read the Python Traceback below and double check your code for bugs
-2) Write a Issue on GitHub (include the Traceback)
+1) Read the Python Traceback below and double check your code for bugs.
+2) Write a Issue on GitHub (include the Traceback):
+   https://github.com/flofriday/OSUE-2020/issues/new
+
+
 
 --- TRACEBACK BELOW ---
         """
