@@ -4,6 +4,7 @@ import shutil
 import urllib.request
 from typing import Dict
 import zlib
+import http.client
 
 
 class HttpTest:
@@ -52,7 +53,7 @@ class HttpTest:
                 timeout=self._timeout,
                 shell=True,
             )
-        except subprocess.TimeoutExpired as e:
+        except subprocess.TimeoutExpired:
             self.test_failed()
             print(
                 f'"{command}" ran for more than {self._timeout}s, but was expected to return {code}'
@@ -80,7 +81,7 @@ class HttpTest:
                 timeout=self._timeout,
                 shell=True,
             )
-        except subprocess.TimeoutExpired as e:
+        except subprocess.TimeoutExpired:
             self.test_passed()
             return True
 
@@ -104,7 +105,7 @@ class HttpTest:
                 timeout=self._timeout,
                 shell=True,
             )
-        except subprocess.TimeoutExpired as e:
+        except subprocess.TimeoutExpired:
             self.test_failed()
             print(
                 f'"{command}" ran for more than {self._timeout}s, but was expected to execute faster.'
@@ -139,7 +140,7 @@ class HttpTest:
                 timeout=self._timeout,
                 shell=True,
             )
-        except subprocess.TimeoutExpired as e:
+        except subprocess.TimeoutExpired:
             self.test_failed()
             print(
                 f'"{command}" ran for more than {self._timeout}s, but was expected to execute faster.'
@@ -187,6 +188,8 @@ class HttpTest:
             res = urllib.request.urlopen(req)
             res_headers = res.headers
             res.read()
+        except http.client.IncompleteRead:
+            pass
         except urllib.error.HTTPError as e:
             res_headers = e.headers
         except urllib.error.URLError as e:
@@ -227,6 +230,8 @@ class HttpTest:
             res = urllib.request.urlopen(req)
             headers = res.headers
             res.read()
+        except http.client.IncompleteRead:
+            pass
         except urllib.error.HTTPError as e:
             headers = e.headers
         except urllib.error.URLError as e:
@@ -254,6 +259,11 @@ class HttpTest:
         req = urllib.request.Request(url, headers=headers)
         try:
             res = urllib.request.urlopen(req)
+            content_size = len(res.read())
+        except http.client.IncompleteRead:
+            # We test it below explicitly so we can just ignore the exception
+            # here.
+            pass
         except urllib.error.URLError as e:
             self.test_failed()
             print(f"The request returned with status {e.code} instead of 200")
@@ -267,7 +277,6 @@ class HttpTest:
             return False
 
         size = int(res.headers["Content-Length"])
-        content_size = len(res.read())
         if size != content_size:
             self.test_failed()
             print(
@@ -286,6 +295,9 @@ class HttpTest:
         req = urllib.request.Request(url, headers=headers)
         try:
             res = urllib.request.urlopen(req)
+            raw_body = res.read()
+        except http.client.IncompleteRead as e:
+            raw_body = e.partial
         except urllib.error.URLError as e:
             self.test_failed()
             print(f"The request returned with status {e.code} instead of 200")
@@ -296,9 +308,9 @@ class HttpTest:
             and "gzip" in res.headers["Content-Encoding"]
         ):
             zobj = zlib.decompressobj(zlib.MAX_WBITS | 32)
-            body = zobj.decompress(res.read())
+            body = zobj.decompress(raw_body)
         else:
-            body = res.read()
+            body = raw_body
 
         content = open(path, "rb").read()
         if body != content:
@@ -336,6 +348,8 @@ class HttpTest:
             res = urllib.request.urlopen(req)
             code = res.status
             res.read()
+        except http.client.IncompleteRead:
+            pass
         except urllib.error.HTTPError as e:
             code = e.code
         except urllib.error.URLError as e:
@@ -375,7 +389,7 @@ class HttpTest:
                 stderr=subprocess.STDOUT,
                 timeout=self._timeout,
             )
-        except subprocess.TimeoutExpired as e:
+        except subprocess.TimeoutExpired:
             self.test_failed()
             print(
                 f'"{command}" ran for more than {self._timeout}s, but was expected to execute faster.'
@@ -383,7 +397,7 @@ class HttpTest:
             return False
 
         output = cp.stdout.decode()
-        if not expected_output in cp.stdout.decode():
+        if expected_output not in cp.stdout.decode():
             self.test_failed()
             print(f'"{command}" did not print "{expected_output}".')
             print(f"---Program Output---\n{output}")
