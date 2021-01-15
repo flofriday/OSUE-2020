@@ -119,6 +119,27 @@ def main():
             "NOTE: this test might fail because you didn't implement binary reading in your client which is a bonus exercise."
         )
 
+    # Test for memoryleaks with valgrind
+    h.does_leak(f"./client -p {port} {index_url}")
+    h.does_leak(f"./client -p {port} {countdown_url}")
+    h.does_leak(f"./client -p {port} {cat_url}")
+    h.does_leak(
+        "./client http://neverssl.com",
+    )
+    h.does_leak("./client http://www.nonhttps.com/")
+    h.does_leak(f"./client -p {port} {index_url}")
+    h.does_leak(f"./client -p {port} localhost/")
+    h.does_leak(f"./client -p {index_url}")
+    h.does_leak(f"./client -o {index_url}")
+    h.does_leak(f"./client -d {index_url}")
+    h.does_leak(f"./client -p {port} {base_url}/does-not-exist")
+    h.does_leak(f"./client -p {port} -o __tmp/index.html {index_url}")
+    h.does_leak(f"./client -p {port} -o __tmp/dog.txt {index_url}")
+    h.does_leak(f"./client -p {port} -o __tmp/dog.txt {countdown_url}")
+    h.does_leak(f"./client -p {port} -d __tmp {index_url}")
+    h.does_leak(f"./client -p {port} -d __tmp/ {countdown_url}")
+    h.does_leak(f"./client -p {port} -d __tmp/ {cat_url}")
+
     # Print the statistics at the end
     h.print_result()
 

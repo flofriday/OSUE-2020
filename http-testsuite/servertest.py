@@ -25,7 +25,7 @@ def main():
     h.does_timeout("./server -p 1335 -i servertest.py ./__docroot/")
 
     # Start a server in the background and test a couple of requests
-    p = start_server("./server -p 1337 __docroot")
+    p = h.start_server("./server -p 1337 __docroot")
     try:
 
         gzip_header = {"Accept-Encoding": "gzip"}
@@ -242,43 +242,13 @@ def main():
             )
 
     except Exception as e:
-        stop_server(h, p)
+        h.stop_server(p)
         raise e
 
-    stop_server(h, p)
+    h.stop_server(p)
 
     # Print the statistics and results
     h.print_result()
-
-
-# Start the server as a child process so that python can make request to it and
-# test it.
-def start_server(command: str) -> subprocess.Popen:
-    return subprocess.Popen(
-        command,
-        shell=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-    )
-
-
-# Stop the server by sending SIGTERM, and give the server 0.5 seconds to comply
-# with that signal, otherwise kill the process forcefully.
-# Also print the servers stdout, stderr to the terminal for debugging.
-def stop_server(h: HttpTest, process: subprocess.Popen):
-    try:
-        process.terminate()
-        process.wait(timeout=0.5)
-        h.test_passed()
-    except subprocess.TimeoutExpired:
-        h.test_failed()
-        print(
-            "The server didn't terminate in the 0.5sec after SIGTERM was sent"
-        )
-
-    print("\n--- Server Output Start---")
-    print(process.stdout.read().decode().strip())
-    print("--- Server Output End ---")
 
 
 # Send a really bad request to the server.

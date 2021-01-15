@@ -4,9 +4,7 @@ An attempt to write an integration testsuite for the third exercise.
 ## ️Disclaimer ⚠️
 First, there is no gurantee that passing these test will gurantee that you will
 be positive. These tests are created by your fellow students and by our
-interpretation of the exercise (which may be wrong). Also these test do not
-check if your code has memmory leaks, and there are no plans at the moment 
-to do this.
+interpretation of the exercise (which may be wrong). 
 
 Having said that, there are quite a lot of test for the server and the client.
 
@@ -22,7 +20,10 @@ python3 servertest.py
 more tests or notes on how to make the error messages more clear.
 
 ## What is tested
-(Empty boxes are for tests that we want to implement)
+(Empty boxes are for tests that we want to implement, but won't as I don't have 
+too much time left)
+
+- [x] Memory corruption / leaks for **Client and Server** 
 
 - [x] **Client** has correct arguments parsing.
 - [x] **Client** parses urls correctly

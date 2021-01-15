@@ -5,6 +5,7 @@ import urllib.request
 from typing import Dict
 import zlib
 import http.client
+import time
 
 
 class HttpTest:
@@ -90,6 +91,110 @@ class HttpTest:
             f'"{command}" should run forever but did exit with {cp.returncode}.'
         )
         return False
+
+    def does_leak(self, command: str) -> bool:
+        valgrind_cmd = (
+            "valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose --log-file=__tmp/valgrind-out.txt "
+            + command
+        )
+        try:
+            subprocess.run(
+                valgrind_cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                timeout=self._timeout * 10,
+                shell=True,
+            )
+        except subprocess.TimeoutExpired:
+            self.test_failed()
+            print(
+                f'"{command}" with valgrind ran for more than {self._timeout * 10}s, but was expected to execute faster.'
+            )
+            return False
+
+        # Read the outputfile and delte it again
+        f = open("__tmp/valgrind-out.txt", "rb")
+        output = f.read().decode("utf-8")
+        f.close()
+        os.remove("__tmp/valgrind-out.txt")
+
+        # Parse the outputfile
+        if (
+            "All heap blocks were freed -- no leaks are possibl" not in output
+            or "ERROR SUMMARY: 0 errors from 0 contexts" not in output
+        ):
+            self.test_failed()
+            print(f'"{command}" resulted in a memmory corruption/leak.')
+            print("Run the following to reproduce the error:")
+            print(
+                f"valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose {command}"
+            )
+            return False
+
+        self.test_passed()
+        return True
+
+    # Start the server to test it
+    # This is not a test
+    def start_server(self, command: str) -> subprocess.Popen:
+        valgrind_cmd = (
+            "valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose --log-file=__tmp/valgrind-out.txt "
+            + command
+        )
+        p = subprocess.Popen(
+            valgrind_cmd,
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+        time.sleep(3)
+        return p
+
+    # Stop the server
+    # This tests the server for leaks and if it can handle sigterm
+    def stop_server(self, process: subprocess.Popen):
+        success = True
+        try:
+            process.terminate()
+            process.wait(timeout=0.5)
+            self.test_passed()
+        except subprocess.TimeoutExpired:
+            self.test_failed()
+            print(
+                "The server didn't terminate in the 0.5sec after SIGTERM was sent"
+            )
+            success = False
+
+        # Parse valgrind
+        f = open("__tmp/valgrind-out.txt", "rb")
+        output = f.read().decode("utf-8")
+        f.close()
+        os.remove("__tmp/valgrind-out.txt")
+
+        # Parse the outputfile
+        if (
+            "All heap blocks were freed -- no leaks are possibl" not in output
+            or "ERROR SUMMARY: 0 errors from 0 contexts" not in output
+        ):
+            self.test_failed()
+            print("The server has a memmory corruption/leak.")
+            print(
+                "Start your server with the following and request some files:"
+            )
+            print(
+                "valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose ./server -p 1339 __docroot/"
+            )
+            print("--- Valgrind Output ---")
+            print(output)
+
+            success = False
+        else:
+            self.test_passed()
+
+        print("\n--- Server Output Start ---")
+        print(process.stdout.read().decode().strip())
+        print("--- Server Output End ---")
+        return success
 
     # This test runs the command and checks afterwards if the file at path got
     # created. However, this test does not check if the file has any content
@@ -266,7 +371,7 @@ class HttpTest:
             pass
         except urllib.error.URLError as e:
             self.test_failed()
-            print(f"The request returned with status {e.code} instead of 200")
+            print(f"The request failed: {e.reason}")
             return False
 
         if "Content-Length" not in res.headers:
@@ -300,7 +405,9 @@ class HttpTest:
             raw_body = e.partial
         except urllib.error.URLError as e:
             self.test_failed()
-            print(f"The request returned with status {e.code} instead of 200")
+            print(
+                f"The request returned with status {e.reason} instead of 200"
+            )
             return False
 
         if (
