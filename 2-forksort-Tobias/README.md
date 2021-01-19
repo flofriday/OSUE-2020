@@ -1,6 +1,7 @@
 # 2-forksort-Tobias
 
 ## Rating
-**Points received:** _not yet rated_
+**Points received:** 20/20
 
 ## About this solution (optional)
+The bonus Task was not implemented. The Tutor had nothing to complain about.
