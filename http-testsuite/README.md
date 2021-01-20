@@ -4,9 +4,7 @@ An attempt to write an integration testsuite for the third exercise.
 ## ️Disclaimer ⚠️
 First, there is no gurantee that passing these test will gurantee that you will
 be positive. These tests are created by your fellow students and by our
-interpretation of the exercise (which may be wrong). Also these test do not
-check if your code has memmory leaks, and there are no plans at the moment 
-to do this.
+interpretation of the exercise (which may be wrong). 
 
 Having said that, there are quite a lot of test for the server and the client.
 
@@ -18,8 +16,14 @@ python3 clienttest.py
 python3 servertest.py
 ```
 
+**Note:** Please feel free to create an issue if you have more tests, ideas for 
+more tests or notes on how to make the error messages more clear.
+
 ## What is tested
-(Empty boxes are for tests that we want to implement)
+(Empty boxes are for tests that we want to implement, but won't as I don't have 
+too much time left)
+
+- [x] Memory corruption / leaks for **Client and Server** 
 
 - [x] **Client** has correct arguments parsing.
 - [x] **Client** parses urls correctly
@@ -28,7 +32,7 @@ python3 servertest.py
 - [x] **Client** can download files and the content is correct (only binary download can be tested)
 - [ ] **Client** sends the correct/required headers
 - [ ] **Client** prints the correct error messages if the server violates the HTTP protocoll
-- [ ] **Client** prints the correct error messages if the server answers witht the wrong HTTP version
+- [ ] **Client** prints the correct error messages if the server answers with the wrong HTTP version
 
 
 - [x] **Server** has correct arguments parsing.
@@ -40,6 +44,5 @@ python3 servertest.py
 - [x] **Server** sends correct status code if HTTP version is not supported
 - [x] **Server** sends correct status code if client violates HTTP protocoll
 - [x] **Server** Only sends compressed content if client can accept it
-- [ ] **Server** Sends compressed content
-- [ ] **Server** The content-length is also the amount the server sent
-
+- [x] **Server** Sends compressed content
+- [x] **Server** The content-length is also the amount the server sent

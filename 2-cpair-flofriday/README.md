@@ -2,7 +2,11 @@
 ![Screenshot](screenshot.png)
 
 ## Rating
-**Points received:** _not yet rated_
+**Points received:** 25/20 (5 Bonus points)
+
+Tutor said that the error-handling is tedious and should be done in a central
+place.
+
 
 ## About this solution
 This solution also implements the tree for the bonustask. While the exercise 
