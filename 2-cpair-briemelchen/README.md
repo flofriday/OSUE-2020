@@ -2,5 +2,3 @@
 
 ## Rating
 **Points received:** 20/20
-
-## 
