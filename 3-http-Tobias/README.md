@@ -5,7 +5,7 @@
 
 Only first bonus Task implemented.
 
-## About this solution (optional)
+## About this solution
 The Tutor had nothing to complain about but there are actually quite some things that I would have done differently if I had more time.
 First of all a lot of Code was copy-pasted from client to server to save some time. Ideally I would have introduced a common module like in my first Excersie.
 Another thing worth mentioning is, that the whole requests and responses are send in one go. Likewise all files are written and read in one go.

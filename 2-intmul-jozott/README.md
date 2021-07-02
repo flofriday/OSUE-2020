@@ -1,7 +1,7 @@
 # 2-intmul-jozott
 
 ## Rating
-**Points received:** _not yet rated_
+**Points received:** not known 🤷‍♀️
 
 
 ## About this solution + bonus
